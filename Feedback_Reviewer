@@ -1,0 +1,108 @@
+Verdict
+Does Not Meet Expectations ❌
+
+✅ What you did well
+You created a Part 1 notebook and included the core data-loading/indexing flow for the local game JSON files.
+You correctly initialized a persistent Chroma client with chromadb.PersistentClient(path="chromadb"), which aligns with the requirement for a persistent vector database.
+You selected an OpenAI embedding function using embedding_functions.OpenAIEmbeddingFunction(api_key=os.getenv("CHROMA_OPENAI_API_KEY")).
+You looped through the games directory, loaded each .json file, formatted the document text with platform, name, release year, and description, and added metadata to the collection using collection.add(...).
+⚠️ What can be improved
+Re-run the notebook from top to bottom before submitting so the Chroma client, collection creation, indexing, and query output cells all show visible execution results.
+Consider using get_or_create_collection(...) instead of create_collection(...) to avoid errors if the collection already exists during repeated notebook runs.
+Returning distances and metadata during semantic search would make it easier to inspect retrieval quality.
+❌ What is missing or incorrect
+Your notebook stops after adding documents to the Chroma collection and does not include an executed semantic search query with visible returned results. The last relevant code is:
+
+collection.add(
+    ids=[doc_id],
+    documents=[content],
+    metadatas=[game]
+)
+This adds data, but the rubric also requires that the notebook demonstrates the vector database can be queried for semantic search. Because there is no cell like collection.query(...) and no displayed search results, the RAG pipeline is not fully demonstrated. Several important cells also show no output, so the submitted notebook does not visibly prove that the persistent database was created, populated, and searched. 👉 This is a core rubric requirement.
+
+Add an executed query cell after indexing, such as:
+
+query = "Which games are racing simulators for PlayStation?"
+results = collection.query(
+    query_texts=[query],
+    n_results=3,
+    include=["documents", "metadatas", "distances"]
+)
+
+print(f"Query: {query}\n")
+for i, (doc, meta, dist) in enumerate(zip(
+    results["documents"][0],
+    results["metadatas"][0],
+    results["distances"][0]
+), start=1):
+    print(f"Result {i}")
+    print("Document:", doc)
+    print("Metadata:", meta)
+    print("Distance:", dist)
+    print("-" * 60)
+This verifies that your embedded game documents can be retrieved semantically.
+
+📚 How to Improve / Further Learning
+Chroma query/get documentation: https://docs.trychroma.com/docs/querying-collections/query-and-get(opens in a new tab) — use this to confirm the correct collection.query(...) structure and output fields.
+Chroma Persistent Client guide: https://cookbook.chromadb.dev/core/clients/#persistent-client(opens in a new tab) — helpful for understanding why PersistentClient is appropriate for this project.
+Chroma collections guide: https://docs.trychroma.com/docs/collections/create-get-delete(opens in a new tab) — useful for improving create_collection vs. get_or_create_collection handling.
+OpenAI embeddings guide: https://platform.openai.com/docs/guides/embeddings(opens in a new tab) — reinforces how semantic search depends on embedding quality.
+The submission includes the notebook (Udaplay_01_solution_project.ipynb) that loads, processes, and formats the provided game JSON files.
+The processed data is added to a persistent vector database (e.g., ChromaDB) with appropriate embeddings.
+The notebook or script demonstrates that the vector database can be queried for semantic search.
+
+
+
+Verdict
+Does Not Meet Expectations ❌
+
+✅ What you did well
+You ran the agent on three appropriate example queries: Pokémon Gold/Silver release timing, the first 3D Mario platformer, and Mortal Kombat X availability on PlayStation 5.
+The final answers are visible in the notebook output, and the state-machine logs show that the workflow executed multiple steps for each query.
+Your third query appears to trigger an additional tool-execution cycle, which suggests the web fallback path may be occurring.
+⚠️ What can be improved
+Print the actual tool names, arguments, tool outputs, and final source/citation information for each query.
+If Tavily web search is used, include at least one returned URL in the visible report or final answer.
+Consider adding a compact per-query trace table with columns like Query, Tools Used, Retrieval Useful, Source, and Final Answer.
+❌ What is missing or incorrect
+The notebook demonstrates three final answers, but it does not visibly show the agent’s reasoning, specific tool usage, or citations. Your current loop only prints the final answer:
+
+answer = next(
+    (m.content for m in reversed(messages) if isinstance(m, AIMessage) and m.content),
+    "No answer found."
+)
+print(f"A: {answer}")
+The output shows generic state-machine lines like [StateMachine] Executing step: tool_executor, but it does not show whether the called tool was retrieve_game, evaluate_retrieval, or game_web_search, nor does it display tool arguments/results. For the Mortal Kombat X answer, the content likely depends on web information, but no source URL is shown. The project requires the report/output for each query to include reasoning, tool usage, final answer, and citation when web information is used. 👉 This is a core rubric requirement.
+
+Update your demonstration loop like this:
+
+for query in queries:
+    print(f"\nQ: {query}")
+    run = agent.invoke(query)
+    final_state = run.get_final_state()
+    messages = final_state["messages"]
+
+    print("\n--- Tool Trace ---")
+    for msg in messages:
+        if isinstance(msg, AIMessage) and msg.tool_calls:
+            for call in msg.tool_calls:
+                print(f"Tool called: {call.function.name}")
+                print(f"Arguments: {call.function.arguments}")
+        if isinstance(msg, ToolMessage):
+            print(f"Tool result from {msg.name}:")
+            print(msg.content[:1200])
+
+    print("\n--- Final Answer ---")
+    print(next((m.content for m in reversed(messages) if isinstance(m, AIMessage) and m.content), "No answer found."))
+This makes the agent process auditable and satisfies the demonstration requirement.
+
+📚 How to Improve / Further Learning
+OpenAI tool-calling documentation: https://platform.openai.com/docs/guides/function-calling(opens in a new tab) — helpful for understanding how to inspect and report tool calls.
+Tavily Search API reference: https://docs.tavily.com/documentation/api-reference/endpoint/search(opens in a new tab) — useful for extracting and displaying citation URLs from web search results.
+Python isinstance documentation: https://docs.python.org/3/library/functions.html#isinstance(opens in a new tab) — relevant to your message-type filtering loop.
+OpenAI structured outputs guide: https://platform.openai.com/docs/guides/structured-outputs(opens in a new tab) — helpful for formatting final reports with answer, reasoning_summary, tools_used, and sources.
+The submission includes the notebook (Udaplay_02_solution_project.ipynb) that runs the agent on at least three example queries (e.g., about game release dates, platforms, or publishers).
+
+The output for each query includes the agent’s reasoning, tool usage, and final answer.
+
+The report includes at least the response with citation, if any
