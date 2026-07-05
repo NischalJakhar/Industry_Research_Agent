@@ -155,7 +155,7 @@ class VectorStoreManager:
     """
 
     def __init__(self, openai_api_key: str):
-        self.chroma_client = chromadb.EphemeralClient()
+        self.chroma_client = chromadb.Client()
         self.embedding_function = self._create_embedding_function(openai_api_key)
 
     def _create_embedding_function(self, api_key: str) -> EmbeddingFunction:
